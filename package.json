@@ -1,0 +1,28 @@
+{
+  "name": "ws-chat",
+  "version": "0.0.0",
+  "description": "websocket socket.io powered web chat",
+  "main": "app.js",
+  "dependencies": {
+    "express": "~3.3.4",
+    "socket.io": "~0.9.16",
+    "supervisor": "~0.5.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:falcondai/ws-chat.git"
+  },
+  "keywords": [
+    "chat",
+    "websocket"
+  ],
+  "author": "Falcon Dai",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/falcondai/ws-chat/issues"
+  }
+}

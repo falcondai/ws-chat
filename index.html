@@ -1,0 +1,59 @@
+<head>
+<title>chatty</title>
+<head>
+<body>
+	<section><input id="name" type="textarea" placeholder="your name" x-webkit-speech /><input type="button" value="connect"></section>
+	<section>
+		<ul id="log">
+		</ul>
+		<input id="box" type="textarea" placeholder="something witty" x-webkit-speech spellcheck /><input type="button" value="send" disabled />
+	</section>
+	
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+	<script>
+	function logAppend(selection, data) {
+		selection.append($('<li>').text(data.name + ': ' + data.message));
+	}
+
+	var chat = io.connect(document.location.origin + '/chat'),
+  		feed = io.connect(document.location.origin + '/feed');
+
+  chat.on('new message', function(data) {
+  	console.log('received new message', data);
+  	logAppend($('#log'), data);
+  });
+
+  feed.on('joined', function(data) {
+  	console.log('new user joined', data);
+  })
+
+  // set name
+	$('input[value=connect]').click(function() {
+		var text = $('#name').val();
+		if (text != '') {
+			feed.emit('join', { 
+				name: text
+			});
+			$('#name').attr('readonly', true);
+			$('input[value=send]').attr('disabled', false);
+		}
+	});
+
+	// send chat
+	$('input[value=send]').click(function() {
+		var text = $('#box').val();
+		if (text != '') {
+			chat.emit('send', { 
+				name: $('#name').val(),
+				message: text
+			});
+			logAppend($('#log'), {
+				name: 'me',
+				message: text
+			});
+			$('#box').val('');
+		}
+	});
+	</script>
+</body>
