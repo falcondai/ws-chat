@@ -5,8 +5,7 @@
   "main": "app.js",
   "dependencies": {
     "express": "~3.3.4",
-    "socket.io": "~0.9.16",
-    "supervisor": "~0.5.3"
+    "socket.io": "~0.9.16"
   },
   "devDependencies": {},
   "scripts": {
