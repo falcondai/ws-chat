@@ -12,13 +12,47 @@ app.get('/', function (req, res) {
 });
 
 io.of('/chat').on('connection', function(socket) {
-	socket.on('send', function(data) {
-		socket.broadcast.emit('new message', data);
+	// welcome message
+	socket.emit('new feed', {
+		body: 'connected to Chatty!'
 	});
-});
 
-io.of('/feed').on('connection', function(socket) {
-	socket.on('join', function(data) {
-		socket.broadcast.emit('joined', data);
+	socket.on('join', function (data) {
+		socket.set('name', data.name, function () {
+			socket.broadcast.emit('new member', {
+				name: data.name
+			});
+		});
+	});
+
+	// Google Wave-like partial message
+	socket.on('partial', function (data) {
+		socket.get('name', function (err, name) {
+			socket.broadcast.emit('new partial', {
+				sender: name,
+				body: data.body
+			});
+		});
+	});
+
+	socket.on('send', function (data) {
+		socket.get('name', function (err, name) {
+			socket.broadcast.emit('new message', {
+				sender: name,
+				body: data.body
+			});
+		});
+	});
+
+	socket.on('disconnect', function () {
+		socket.get('name', function (err, name) {
+			socket.broadcast.emit('member disconnected', {
+				'name': name
+			});
+		});
+	});
+
+	socket.on('anything', function (data) {
+		console.log('unreserved message: ', data);
 	});
 });
