@@ -20,6 +20,7 @@ io.of('/chat').on('connection', function(socket) {
 	socket.on('join', function (data) {
 		socket.set('name', data.name, function () {
 			socket.broadcast.emit('new member', {
+				id: socket.id,
 				name: data.name
 			});
 		});
@@ -29,6 +30,7 @@ io.of('/chat').on('connection', function(socket) {
 	socket.on('partial', function (data) {
 		socket.get('name', function (err, name) {
 			socket.broadcast.emit('new partial', {
+				id: socket.id,
 				sender: name,
 				body: data.body
 			});
@@ -38,6 +40,7 @@ io.of('/chat').on('connection', function(socket) {
 	socket.on('send', function (data) {
 		socket.get('name', function (err, name) {
 			socket.broadcast.emit('new message', {
+				id: socket.id,
 				sender: name,
 				body: data.body
 			});
@@ -47,7 +50,8 @@ io.of('/chat').on('connection', function(socket) {
 	socket.on('disconnect', function () {
 		socket.get('name', function (err, name) {
 			socket.broadcast.emit('member disconnected', {
-				'name': name
+				id: socket.id,
+				name: name
 			});
 		});
 	});

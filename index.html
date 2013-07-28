@@ -20,14 +20,14 @@
 	<section>
 		<ul id="log">
 		</ul>
-		<input id="box" type="textarea" placeholder="something witty" x-webkit-speech spellcheck /><input type="button" value="send" disabled />
+		<input id="box" type="textarea" placeholder="something witty" x-webkit-speech spellcheck disabled /><input type="button" value="send" disabled />
 	</section>
 	
 	<script src="/socket.io/socket.io.js"></script>
 	<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 	<script>
-	function logAppend(selection, data) {
-		var newLog = $('<li>').addClass(data.sender||'me')
+	function logAppend(selection, data, className) {
+		var newLog = $('<li>').addClass(className)
 			.append($('<span>').addClass('sender').text(data.sender||'me'))
 			.append(' : ')
 			.append($('<span>').addClass('body').text(data.body));
@@ -48,10 +48,13 @@
 
 	chat.on('new partial', function (data) {
 		console.log('received new partial message', data);
-		var logs = $('#log').find('.' + data.sender);
+		var logs = $('#log').find('.' + data.id);
 		if (logs.length == 0 || $(logs[logs.length-1]).hasClass('final')) {
 			// add a new log
-			logAppend($('#log'), data);
+			logAppend($('#log'), data, data.id);
+		} else if (data.body == '') {
+			// empty message, remove the log item
+			$(logs[logs.length-1]).remove();
 		} else {
 			// update the last partial
 			$(logs[logs.length-1]).find('.body').text(data.body);
@@ -60,10 +63,10 @@
 
 	chat.on('new message', function (data) {
 		console.log('received new message', data);
-		var logs = $('#log').find('.' + data.sender);
+		var logs = $('#log').find('.' + data.id);
 		if (logs.length == 0 || $(logs[logs.length-1]).hasClass('final')) {
 			// add a new log
-			logAppend($('#log'), data).addClass('final');
+			logAppend($('#log'), data, data.id).addClass('final');
 		} else {
 			// finalize the last partial
 			$(logs[logs.length-1]).addClass('final').find('.body').text(data.body);
@@ -84,7 +87,7 @@
 	});
 
   	// set name
-	$('input[value=connect]').click(function() {
+	$('input[value="connect"]').click(function() {
 		var enteredName = $('#name').val();
 		if (enteredName != '') {
 			chat.emit('join', { 
@@ -92,20 +95,20 @@
 			});
 			$('#name').attr('readonly', true);
 			$(this).attr('disabled', true);
-			$('input[value=send]').attr('disabled', false);
-			$('#box').focus();
+			$('input[value="send"]').attr('disabled', false);
+			$('#box').attr('disabled', false).focus();
 		}
 	});
 
 	// use enter key to connect
 	$('#name').keydown(function (event) {
 		if (event.which == 13) {
-			$('input[value=connect]').click();
+			$('input[value="connect"]').click();
 		}
 	});
 
 	// send message
-	$('input[value=send]').click(function() {
+	$('input[value="send"]').click(function() {
 		var enteredText = $('#box').val();
 		if (enteredText != '') {
 			chat.emit('send', { 
@@ -113,7 +116,7 @@
 			});
 			logAppend($('#log'), {
 				body: enteredText
-			}).addClass('final');
+			}, chat.socket.sessionid).addClass('final');
 			lastEnteredChat = '';
 			$('#box').val('');
 		}
@@ -122,7 +125,7 @@
 	// use enter key to send
 	$('#box').keydown(function (event) {
 		if (event.which == 13) {
-			$('input[value=send]').click();
+			$('input[value="send"]').click();
 		}
 	}).change(function () {
 		chat.emit('partial', {
