@@ -1,0 +1,143 @@
+!!! 5
+html  
+  head
+    meta(charset='uft-8')
+    title chatty
+    :stylus
+      body
+        font-family sans-serif
+
+      li .body
+        color #888
+
+      li.final .body
+        color black
+  body
+    section#feed connecting to Chatty...
+    section
+      input#name(type='textarea', placeholder='your name', x-webkit-speech)
+      input(type='button', value='connect')
+    section
+      ul#log
+      input#box(type='textarea', placeholder='something witty', x-webkit-speech spellcheck disabled)
+      input(type='button', value='send', disabled)
+    
+    script(src='/socket.io/socket.io.js')
+    script(src='http://code.jquery.com/jquery-1.10.1.min.js')
+    script.
+      function logAppend(selection, data, className) {
+        var newLog = $('<li>').addClass(className)
+          .append($('<span>').addClass('sender').text(data.sender||'me'))
+          .append(' : ')
+          .append($('<span>').addClass('body').text(data.body));
+
+        selection.append(newLog);
+
+        return newLog;
+      }
+
+      var chat = io.connect(document.location.origin + '/chat'),
+        lastEnteredChat = '',
+        updateInterval = 500;
+
+      chat.on('new feed', function (data) {
+        console.log('new feed: ', data);
+        $('#feed').text(data.body);
+      });
+
+      chat.on('new partial', function (data) {
+        console.log('received new partial message', data);
+        var logs = $('#log').find('.' + data.id);
+        if (logs.length == 0 || $(logs[logs.length-1]).hasClass('final')) {
+          // add a new log
+          logAppend($('#log'), data, data.id);
+        } else if (data.body == '') {
+          // empty message, remove the log item
+          $(logs[logs.length-1]).remove();
+        } else {
+          // update the last partial
+          $(logs[logs.length-1]).find('.body').text(data.body);
+        }
+      });
+
+      chat.on('new message', function (data) {
+        console.log('received new message', data);
+        var logs = $('#log').find('.' + data.id);
+        if (logs.length == 0 || $(logs[logs.length-1]).hasClass('final')) {
+          // add a new log
+          logAppend($('#log'), data, data.id).addClass('final');
+        } else {
+          // finalize the last partial
+          $(logs[logs.length-1]).addClass('final').find('.body').text(data.body);
+        }
+      });
+
+      chat.on('new member', function (data) {
+        console.log('new user joined', data);
+        $('#feed').text(data.name + ' has joined the chat.');
+      });
+
+      chat.on('member disconnected', function (data) {
+        $('#feed').text((data.name||'unnamed') + ' has disconnected.');
+      });
+
+      chat.on('anything', function (data) {
+        console.log('unreserved message: ' + data);
+      });
+
+        // set name
+      $('input[value="connect"]').click(function() {
+        var enteredName = $('#name').val();
+        if (enteredName != '') {
+          chat.emit('join', { 
+            name: enteredName
+          });
+          $('#name').attr('readonly', true);
+          $(this).attr('disabled', true);
+          $('input[value="send"]').attr('disabled', false);
+          $('#box').attr('disabled', false).focus();
+        }
+      });
+
+      // use enter key to connect
+      $('#name').keydown(function (event) {
+        if (event.which == 13) {
+          $('input[value="connect"]').click();
+        }
+      });
+
+      // send message
+      $('input[value="send"]').click(function() {
+        var enteredText = $('#box').val();
+        if (enteredText != '') {
+          chat.emit('send', { 
+            body: enteredText
+          });
+          logAppend($('#log'), {
+            body: enteredText
+          }, chat.socket.sessionid).addClass('final');
+          lastEnteredChat = '';
+          $('#box').val('');
+        }
+      });
+
+      // use enter key to send
+      $('#box').keydown(function (event) {
+        if (event.which == 13) {
+          $('input[value="send"]').click();
+        }
+      }).change(function () {
+        chat.emit('partial', {
+          body: $(this).val()
+        });
+      });
+
+      // Google Wave-like partial message
+      setInterval(function () {
+        if (lastEnteredChat != $('#box').val()) {
+          lastEnteredChat = $('#box').val();
+          $('#box').change();
+        }
+      }, updateInterval);
+
+      $('#name').focus();
